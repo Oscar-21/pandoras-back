@@ -181,6 +181,11 @@ return [
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
 
+
+        /*
+         * Payment/Subsription Service Providers...
+         */
+         Laravel\Cashier\CashierServiceProvider::class, 
     ],
 
     /*
