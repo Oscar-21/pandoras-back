@@ -16,6 +16,8 @@ class UsersController extends Controller
   public function signUp(Request $request) 
   {
     $stripeToken = config('services.stripe.key');
+/*    $stripeSecret = config('services.stripe.secret'); */
+
     $validator = Validator::make(Purifier::clean($request->all()), [
       'username' => 'required',
       'password' => 'required',
@@ -43,38 +45,31 @@ class UsersController extends Controller
     $user->address = $request->input('address');
     $user->zipCode = $request->input('zipCode');
     $user->roleID = 2;
-    /*return Response(['hell' => 'naa']);*/
-try {
-  $user->newSubscription('main', 'monthly')->create('nope ');
-  // Use Stripe's library to make requests...
-} catch(\Stripe\Error\Card $e) {
-    // Since it's a decline, \Stripe\Error\Card will be caught
-    $body = $e->getJsonBody();
-    $err  = $body['error'];
+  /*   return Response(['hell' => 'naa']); */
 
-    print('Status is:' . $e->getHttpStatus() . "\n");
-    print('Type is:' . $err['type'] . "\n");
-    print('Code is:' . $err['code'] . "\n");
-    // param is '' in this case
-    print('Param is:' . $err['param'] . "\n");
-    print('Message is:' . $err['message'] . "\n");
-} catch (\Stripe\Error\RateLimit $e) {
-    // Too many requests made to the API too quickly
-} catch (\Stripe\Error\InvalidRequest $e) {
-    // Invalid parameters were supplied to Stripe's API
-} catch (\Stripe\Error\Authentication $e) {
-    // Authentication with Stripe's API failed
-    // (maybe you changed API keys recently)
-} catch (\Stripe\Error\ApiConnection $e) {
-    // Network communication with Stripe failed
+/*    \Stripe\Stripe::setApiKey($stripeSecret); 
 
-} catch (\Stripe\Error\Base $e) {
-    // Display a very generic error to the user, and maybe send
-    // yourself an email
-} catch (Exception $e) {
-    // Something else happened, completely unrelated to Stripe
-}
+/*    \Stripe\Customer::create(array(
+      "description" => "Customer for jayden.wilson@example.com",
+      "source" => "tok_189gGV2eZvKYlo2Cy0Ke9b1G" // obtained with Stripe.js
+    )); */
+
+/*    $shopper = \Stripe\Customer::retrieve("cus_AktlHXJJIdOYPZ");
+
+    $customerToken = "cus_AktlHXJJIdOYPZ"; 
+
+    /*$plan = \Stripe\Plan::create(array(
+      "name" => "Basic",
+      "id" => "basic-monthly",
+      "interval" => "month",
+      "currency" => "usd",
+      "amount" => 0,
+    ));*/
+
+    $user->newSubscription('monthly', 'monthly')->create($stripeToken);
+/*    return Response::json($user.stripe_id); */
     $user->save();
+    return Response::json($user.stripe_id);
     return Response::json(["success" => "User created successfully"]);
   }
 
