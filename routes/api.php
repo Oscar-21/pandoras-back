@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Http\Request;
-
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -13,4 +12,7 @@ use Illuminate\Http\Request;
 |
 */
 
+Route::post('signUp', 'UsersController@signUp');
+Route::get( 'try', 'UsersController@try'); 
 Route::any('{path?}', 'MainController@index')->where("path", ".+");
+

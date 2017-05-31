@@ -21,9 +21,8 @@ class CreateUsersTable extends Migration
             $table->integer('roleID');
             $table->string('address');
             $table->string('zipCode');
-            $table->string('TODO');
             $table->rememberToken();
-            // stripe columns
+            
             $table->string('stripe_id')->nullable();
             $table->string('card_brand')->nullable();
             $table->string('card_last_four')->nullable();
