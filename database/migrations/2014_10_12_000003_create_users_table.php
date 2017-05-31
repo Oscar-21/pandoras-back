@@ -21,7 +21,7 @@ class CreateUsersTable extends Migration
             $table->integer('roleID');
             $table->string('billingAddress');
             $table->boolean('useBillingAddress');
-            $table->string('deliverAddress');
+            $table->string('deliverAddress')->nullable();
             $table->string('zipCode');
             $table->string('country');
             $table->string('city');
