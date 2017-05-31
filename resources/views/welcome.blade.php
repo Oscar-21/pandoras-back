@@ -12,8 +12,8 @@
           src="https://checkout.stripe.com/checkout.js" class="stripe-button"
           data-key="pk_test_rJKqFRMRduGAyguxdWT2TfcI"
           data-amount="999"
-          data-name="Demos Site"
-          data-description="Widget"
+          data-name="Pyxis"
+          data-description="Subscribe"
           data-image="https://stripe.com/img/documentation/checkout/marketplace.png"
           data-locale="auto">
         </script>

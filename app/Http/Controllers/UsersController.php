@@ -7,13 +7,12 @@ use App\User;
 use Response;
 use Purifier;
 use Hash;
-use Subscrpition;
 use Illuminate\Support\Facades\Validator;
 
 class UsersController extends Controller
 {
 
-  public function signUp(Request $request) 
+  public function signUp(Request $request)
   {
     $stripeToken = config('services.stripe.key');
 /*    $stripeSecret = config('services.stripe.secret'); */
@@ -24,16 +23,18 @@ class UsersController extends Controller
       'address' => 'required',
       'zipCode' => 'required',
       'email' => 'required',
+      'city' => 'required',
+      'country' => 'required',
     ]);
 
-    if ($validator->fails()) 
+    if ($validator->fails())
     {
       return Response::json(["error" => "You must eneter a username, email and password."]);
     }
 
     $check = User::where("email","=",$request->input("email"))->orWhere("name","=",$request->input("username"))->first();
 
-    if (!empty($check)) 
+    if (!empty($check))
     {
       return Response::json(["error" => "Email or username alrready in use."]);
     }
@@ -44,10 +45,11 @@ class UsersController extends Controller
     $user->email = $request->input('email');
     $user->address = $request->input('address');
     $user->zipCode = $request->input('zipCode');
+    $user->city= $request->input('city');
+    $user->country= $request->input('country');
     $user->roleID = 2;
-  /*   return Response(['hell' => 'naa']); */
 
-/*    \Stripe\Stripe::setApiKey($stripeSecret); 
+/*    \Stripe\Stripe::setApiKey($stripeSecret);
 
 /*    \Stripe\Customer::create(array(
       "description" => "Customer for jayden.wilson@example.com",
@@ -56,7 +58,7 @@ class UsersController extends Controller
 
 /*    $shopper = \Stripe\Customer::retrieve("cus_AktlHXJJIdOYPZ");
 
-    $customerToken = "cus_AktlHXJJIdOYPZ"; 
+    $customerToken = "cus_AktlHXJJIdOYPZ";
 
     /*$plan = \Stripe\Plan::create(array(
       "name" => "Basic",
@@ -66,14 +68,21 @@ class UsersController extends Controller
       "amount" => 0,
     ));*/
 
-    $user->newSubscription('monthly', 'monthly')->create($stripeToken);
-/*    return Response::json($user.stripe_id); */
+
+
+  /*  return Response::json(["hell" => "naa"]);*/
+    $user->newSubscription('main', 'monthly')->create();
     $user->save();
-    return Response::json($user.stripe_id);
+    $email = $request->input('email');
+    $info = User::where('users.email',$email)->first();
+    dd($info);
+    /*return Response::json($user);*/
+/*    return Response::json($user.stripe_id); */
+    /*return Response::json($user.stripe_id);*/
     return Response::json(["success" => "User created successfully"]);
   }
 
-  public function try() 
+  public function try()
   {
     $stripeToken = config('services.stripe.key');
     return $stripeToken;
