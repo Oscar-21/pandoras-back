@@ -19,7 +19,9 @@ class CreateUsersTable extends Migration
             $table->string('email')->unique();
             $table->string('password');
             $table->integer('roleID');
-            $table->string('address');
+            $table->string('billingAddress');
+            $table->boolean('useBillingAddress');
+            $table->string('deliverAddress');
             $table->string('zipCode');
             $table->string('country');
             $table->string('city');
