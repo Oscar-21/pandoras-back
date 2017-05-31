@@ -11,10 +11,7 @@ use App\User;
 |
 */
 
-Route::get('/', function () {
-  \Debugbar::startMeasure('query_time', 'The execution time of user query');
-  $users = User::get();
-  \Debugbar::stopMeasure('query_time');
+Route::get('checkout', function () {
   return view('welcome');
 });
 Route::any('{path?}', 'MainController@index')->where("path", ".+");
