@@ -23,7 +23,6 @@ class CreateUsersTable extends Migration
             $table->string('billingCountry');
             $table->string('billingCity');
             $table->string('billingZipCode');
-            $table->boolean('useBillingAddress');
             $table->string('deliverAddress')->nullable();
             $table->string('deliverZipCode')->nullable();
             $table->string('deliverCountry')->nullable();

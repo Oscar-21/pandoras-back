@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Http\Request;
 use App\Role;
 use JWTAuth;
 use Auth;
@@ -30,7 +29,8 @@ class RolesController extends Controller
       return Response::json(["error" => "Invalid input"]);
     }
 
-    $userID = Auth::id();
+    $admin = Auth::id();
+    return Response::json($admin);
 
     if ($userID == 1)
     {

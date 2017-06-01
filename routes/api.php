@@ -23,6 +23,7 @@ Route::post('signUp', 'UsersController@signUp');
 Route::post('signIn', 'UsersController@signIn');
 Route::get( 'index', 'UsersController@index'); 
 Route::get('isSub/{id}', 'UsersController@isUserSubscribed');
+Route::get('try', 'UsersController@try');
 
 //Redirect invalid requests
 Route::any('{path?}', 'MainController@index')->where("path", ".+");
