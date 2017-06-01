@@ -19,7 +19,21 @@ class UsersController extends Controller
   {
     $this->middleware('jwt.auth', ['only'=>['deleteUser','show','index','updateAddress', 'adminShowUser','userShow']]);
   }
+  
+  /*
+   *  ADMIN: Show all user information
+   */ 
+  public function index()
+  {
+    $user = user::where('id', 1)->first();
 
+    if ($user->subscribedToPlan('monthly', 'main')) 
+    {
+      return Response::json(['success' => 'user is subscribed']);
+    }
+    return Response(['hell' => 'naaq']);
+    return Response::json($user);
+  }
   public function signUp(Request $request)
   {
     // Required form fields
@@ -68,9 +82,36 @@ class UsersController extends Controller
     return Response::json(['success' => 'User created successfully']);
   }
 
-  public function try()
+  public function show()
   {
-    
+
+  }
+  public function signIn(Request $request)
+  {
+    $validator = Validator::make(Purifier::clean($request->all()), [
+      'email' => 'required',
+      'password' => 'required'
+    ]);
+
+    if ($validator->fails()) 
+    {
+      return Response::json(["error" => "You must enter an email and a password."]);
+    }
+      $email = $request->input('email');
+      $password = $request->input('password');
+      $cred = compact("email","password",["email","password"]);
+      $token = JWTAuth::attempt($cred);
+      return Response::json(compact("token"));
   }
 
+  
+  public function isUserSubscribed($id)
+  {
+    $user = User::where('id', $id)->first();
+    if ($user->subscribedToPlan('monthly', 'main')) 
+    {
+      return Response::json(true);
+    }
+    return Response::json(false);
+  }
 }

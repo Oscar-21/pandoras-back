@@ -11,8 +11,19 @@ use Illuminate\Http\Request;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
+// Roles Routes
+Route::post('storeRole', 'RolesController@store');
+Route::get('getRoles', 'RolesController@index');
+Route::post('updateRole/{id}', 'RolesController@update');
+Route::get('showRole/{id}', 'RolesController@show');
+Route::post('deleteRole/{id}', 'RolesController@destroy');
 
+// User Routes
 Route::post('signUp', 'UsersController@signUp');
-Route::get( 'try', 'UsersController@try'); 
+Route::post('signIn', 'UsersController@signIn');
+Route::get( 'index', 'UsersController@index'); 
+Route::get('isSub/{id}', 'UsersController@isUserSubscribed');
+
+//Redirect invalid requests
 Route::any('{path?}', 'MainController@index')->where("path", ".+");
 
