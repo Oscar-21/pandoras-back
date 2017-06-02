@@ -15,22 +15,57 @@ class UsersController extends Controller
 {
   public function __construct()
   {
-    $this->middleware('jwt.auth', ['only'=>['deleteUser','show','index','updateAddress', 'adminShowUser','userShow']]);
+    $this->middleware('jwt.auth', ['only'=>[
+      'deleteUser',
+      'show',
+      'indexUser',
+      'indexAdmin',
+      'updateAddress', 
+      'adminShowUser',
+      'userShow',
+      'isUserSubscribed',
+      'newAdmin'
+    ]]);
   }
   
   /*
    *  ADMIN: Show all user information
    */ 
-  public function index()
+  public function indexUsers()
   {
-    $user = user::where('id', 1)->first();
+      $admin = Auth::user();
 
-    if ($user->subscribedToPlan('monthly', 'main')) 
-    {
-      return Response::json(['success' => 'user is subscribed']);
-    }
-    return Response(['hell' => 'naaq']);
-    return Response::json($user);
+      if ($admin->roleID != 'Admin' )
+      {
+        return Response::json(['error' => 'invalid credentials']);
+      }
+        
+      $users = User::join('subscriptions','users.id','subscriptions.user_id')
+        ->select('users.*', 'subscriptions.*')->get();
+
+      return Response::json($users);
+  }
+
+
+  /*
+   *  User: Check Subscritption Status
+   */ 
+  public function indexAdmin()
+  {
+      $admin = Auth::user();
+
+      if ($admin->roleID != 'Admin' )
+      {
+        return Response::json(['error' => 'invalid credentials']);
+      }
+
+      $allAdmins = User::where('roleID', '==', 'Admin')->select(
+        'name',
+        'email', 
+        'roleID' 
+      )->get();
+    
+    return Response::json($allAdmins);
   }
 
   public function signUp(Request $request)
@@ -118,6 +153,10 @@ class UsersController extends Controller
   {
 
   }
+
+  /*
+   *  USER: Sign in
+   */ 
   public function signIn(Request $request)
   {
     $validator = Validator::make(Purifier::clean($request->all()), [
@@ -137,6 +176,9 @@ class UsersController extends Controller
   }
 
   
+  /*
+   *  ADMIN: Check Subscritption Status
+   */ 
   public function isUserSubscribed($id)
   {
     $user = User::where('id', $id)->first();
@@ -149,14 +191,40 @@ class UsersController extends Controller
 
   public function try()
   {
-   /* $role = Role::where('id',1)->select('name')->first();
-    return Response::json($role['name']); */
-/*    $check = Response::json( $request['useBillingAddress'] );
-
-    if (check == true) */
-
-    return Response::json( 'tsests' );
+    $users = User::join('subscriptions','users.id','subscriptions.user_id')->select('users.*', 'subscriptions.*')->get();
+    return Response::json($users);
   } 
+
+
+  /*
+   *  ADMIN: delete user
+   */ 
+  public function deleteUser($id)
+  {
+      $admin = Auth::user();
+
+      if ($admin->roleID != 'Admin' )
+      {
+        return Response::json(['error' => 'invalid credentials']);
+      }
+      $user = User::where('id',$id)->first();
+      $user->delete();
+  }
+
+  /*
+   *  ADMIN: give admin privalages to user
+   */ 
+  public function addAdmin($id)
+  {
+      $admin = Auth::user();
+
+      if ($admin->roleID != 'Admin' )
+      {
+        return Response::json(['error' => 'invalid credentials']);
+      }
+      $user = User::where('id',$id)->first();
+
+      $newRole = Role::where('id',1)->select('name')->first();
+      $user->roleID = $newRole['name'];
+  }
 }
-
-
