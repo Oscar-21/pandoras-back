@@ -2,7 +2,7 @@
 namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\User;
-use App\Subscribe;
+use App\Subscription;
 use App\Role;
 use Response;
 use Purifier;
@@ -45,7 +45,6 @@ class UsersController extends Controller
 
       return Response::json($users);
   }
-
 
   /*
    *  User: Check Subscritption Status
@@ -191,9 +190,26 @@ class UsersController extends Controller
 
   public function try()
   {
-    $users = User::join('subscriptions','users.id','subscriptions.user_id')->select('users.*', 'subscriptions.*')->get();
-    return Response::json($users);
-  } 
+
+    $key = config('stripe.key');
+    return Response::json($key);
+
+   /* $user = User::where('id', $id)->first();
+
+    $subscriptionCheck = Subscription::where('user_id',$id)->select('name','stripe_plan')->first();
+
+      $stripePlan = $subscriptionCheck['stripe_plan'];
+      $plan = $subscriptionCheck['name'];
+
+      $user->subscription('sub_AlX4Pg5alltMdZ')->cancel(); 
+      return Response::json(["success" => "subscription cancelled"]); */
+
+
+/*    \Stripe\Stripe::setApiKey("sk_test_mFK7v2MxoaazV6TqJ0dHURiM");
+    $sub = \Stripe\Subscription::retrieve("sub_AlX4Pg5alltMdZ");
+    $sub->cancel();  */
+
+  }  
 
 
   /*
@@ -226,5 +242,22 @@ class UsersController extends Controller
 
       $newRole = Role::where('id',1)->select('name')->first();
       $user->roleID = $newRole['name'];
+  }
+
+  /*
+   *  ADMIN: cancel user subscription
+   */ 
+  public function cancelSubs($id)
+  {
+      $admin = Auth::user();
+
+      if ($admin->roleID != 'Admin' )
+      {
+        return Response::json(['error' => 'invalid credentials']);
+      }
+      $subscription = Subscription::where('user_id',$id)->select('stripe_plan')->first();
+
+/*      $ = Role::where('id',1)->select('name')->first();
+      $user->roleID = $newRole['name']; */
   }
 }
