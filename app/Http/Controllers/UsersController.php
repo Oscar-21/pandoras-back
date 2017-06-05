@@ -10,6 +10,7 @@ use Hash;
 use Illuminate\Support\Facades\Validator;
 use JWTAuth;
 use Auth;
+use Carbon\Carbon;
 
 class UsersController extends Controller
 {
@@ -190,27 +191,9 @@ class UsersController extends Controller
 
   public function try()
   {
-
-    $key = config('stripe.key');
-    return Response::json($key);
-
-   /* $user = User::where('id', $id)->first();
-
-    $subscriptionCheck = Subscription::where('user_id',$id)->select('name','stripe_plan')->first();
-
-      $stripePlan = $subscriptionCheck['stripe_plan'];
-      $plan = $subscriptionCheck['name'];
-
-      $user->subscription('sub_AlX4Pg5alltMdZ')->cancel(); 
-      return Response::json(["success" => "subscription cancelled"]); */
-
-
-/*    \Stripe\Stripe::setApiKey("sk_test_mFK7v2MxoaazV6TqJ0dHURiM");
-    $sub = \Stripe\Subscription::retrieve("sub_AlX4Pg5alltMdZ");
-    $sub->cancel();  */
-
+    $subs = Subscription::all();
+    return Response::json($subs);
   }  
-
 
   /*
    *  ADMIN: delete user
@@ -245,7 +228,7 @@ class UsersController extends Controller
   }
 
   /*
-   *  ADMIN: cancel user subscription
+   *  ADMIN: cancel user subscription immediately
    */ 
   public function cancelSubs($id)
   {
@@ -255,9 +238,25 @@ class UsersController extends Controller
       {
         return Response::json(['error' => 'invalid credentials']);
       }
-      $subscription = Subscription::where('user_id',$id)->select('stripe_plan')->first();
+      $user = User::where('id',$id)->first();
+      $getUserID =  User::where('id',$id)->select('id')->first();
+      $userID = $getUserID['id'];
 
-/*      $ = Role::where('id',1)->select('name')->first();
-      $user->roleID = $newRole['name']; */
+      $subscription = Subscription::where('user_id', $userID)->first();
+      $getStripeID =  Subscription::where('user_id',$userID)->select('stripe_id')->first();
+      $stripeID =  $getStripeID['stripe_id'];
+    
+      $key = config('services.stripe.secret');
+      \Stripe\Stripe::setApiKey($key);
+      $sub = \Stripe\Subscription::retrieve($stripeID);
+      $sub->cancel(); 
+      
+      $user->roleID = 'unsubscribed';
+      $user->save();
+      
+      $subscription->name = 'unsubscribed';
+      $subscription->stripe_plan = 'none';
+      $subscription->ends_at = Carbon::now();
+      $subscription->save();
   }
 }
