@@ -23,8 +23,12 @@ Route::post('signUp', 'UsersController@signUp');
 Route::post('signIn', 'UsersController@signIn');
 Route::get( 'index', 'UsersController@index'); 
 Route::get('isSub/{id}', 'UsersController@isUserSubscribed');
-Route::get('try/{id}', 'UsersController@tryMe');
-Route::get('tryIt', 'UsersController@tryIt');
+Route::get('inv', 'UsersController@invoicePDF');
+Route::get('cancel', 'UsersController@userCancelNow');
+
+//test routes
+Route::get('try', 'UsersController@tryMe');
+Route::get('tryIt/{id}', 'UsersController@tryIt');
 
 // Invoice
 Route::get('user/invoice/{invoice}', function (Request $request, $invoiceId) {

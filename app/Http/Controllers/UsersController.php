@@ -27,7 +27,10 @@ class UsersController extends Controller
       'adminShowUser',
       'userShow',
       'isUserSubscribed',
-      'newAdmin'
+      'newAdmin',
+      'invoicePDF',
+      'tryMe',
+      'userCancelNow'
     ]]);
   }
   
@@ -50,7 +53,7 @@ class UsersController extends Controller
   }
 
   /*
-   *  User: Check Subscritption Status
+   *  ADMIN: Show all site admins
    */ 
   public function indexAdmin()
   {
@@ -63,8 +66,7 @@ class UsersController extends Controller
 
       $allAdmins = User::where('roleID', '==', 'Admin')->select(
         'name',
-        'email', 
-        'roleID' 
+        'email'
       )->get();
     
     return Response::json($allAdmins);
@@ -200,78 +202,71 @@ class UsersController extends Controller
 
  }
 
-  public function tryMe($id)
+  public function tryMe()
+  {
+    if (Auth::check() && Auth::user()->roleID != 'Admin')
+    {
+      $user = Auth::user();
+      return Response::json($user->stripe_id);
+    }
+    return Response::json(false);
+  }
+
+
+  public function tryIt($id)
   {
     $user = User::where('id',$id)->first();
-    $getUserID =  User::where('id',$id)->select('id')->first();
-    $userID = $getUserID['id'];
-
-    $subscription = Subscription::where('user_id', $userID)->first();
-    $getStripeID =  Subscription::where('user_id',$userID)->select('stripe_id')->first();
-    $stripeID =  $getStripeID['stripe_id'];
-
-    $customerID = $user['stripe_id'];
-    $key = config('services.stripe.secret');
-    \Stripe\Stripe::setApiKey($key);
-
-    $customer = \Stripe\Customer::retrieve($customerID);
-    $invoice = \Stripe\Invoice::retrieve("in_1AQ00iDRWneWp7Hphlzk37s6");
-
-    $invoices = $user->invoices();
-    $response = \Stripe\Invoice::all(array('customer' => $customerID));
-    $sub = \Stripe\Subscription::retrieve($stripeID);
-
-    $newResponse = array();
-    $newResponse['amount due'] = $response['data'][0]['amount_due'];
-    $newResponse['date'] = date("F j, Y, g:i a",$response['data'][0]['date']);
-
-    $dompdf = new Dompdf();
-    $dompdf->loadHtml('Date: '.$newResponse['date']."<br/>".'Amount due is: '.$newResponse['amount due']);
-
-    // (Optional) Setup the paper size and orientation
-    $dompdf->setPaper('A4', 'landscape');
-
-    // Render the HTML as PDF
-    $dompdf->render();
-
-    // Output the generated PDF to Browser
-    $dompdf->stream();
+    \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
+    $response = \Stripe\Invoice::all(array('customer' => $user->stripe_id));
+    return Response::json($response);
   }
 
-
-  public function tryIt()
+  /*
+   *  USER: generate pdf file of invoice
+   */ 
+  public function invoicePDF()
   {
-    $dompdf = new Dompdf();
-    $dompdf->loadHtml('hello world');
+    if (Auth::user()->roleID != 'Admin')
+    {
+      $user = Auth::user();
+      $customerID = $user->stripe_id;
 
-    // (Optional) Setup the paper size and orientation
-    $dompdf->setPaper('A4', 'landscape');
+      \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
+      $response = \Stripe\Invoice::all(array('customer' => $customerID));
 
-    // Render the HTML as PDF
-    $dompdf->render();
-
-    // Output the generated PDF to Browser
-    $dompdf->stream();
+      $dompdf = new Dompdf();
+      $dompdf->loadHtml(
+        '<h1>'.'Pyxis Invoice'.'</h1>'.
+        'Customer: '.$user->name.'<br/>'.
+        'Date: '.date("F j, Y, g:i a",$response['data'][0]['date']).'<br/>'.
+        'Amount due: $'.substr_replace($response['data'][0]['amount_due'],'.',2,0).'<br/>'. 
+        'Current Balance: $'.$response['data'][0]['ending_balance'].'.00' 
+      );
+      // (Optional) Setup the paper size and orientation
+      $dompdf->setPaper('A4', 'landscape');
+      // Render the HTML as PDF
+      $dompdf->render();
+      // Output the generated PDF to Browser
+      $dompdf->stream();
+    }
   }
+
   /*
    *  ADMIN: delete user
    */ 
   public function deleteUser($id) 
   {
-    $admin = Auth::user();
-
-    if ($admin->roleID != 'Admin' )
+    if (Auth::user()->roleID == 'Admin')
     {
-      return Response::json(['error' => 'invalid credentials']);
-    }
-    $user = User::where('id',$id)->first();
+      $user = User::where('id',$id)->first();
 
-    if ($user->roleID != 'unsubscribed')
-    {
-      return Response::json(['error' => "User's subscription must first be cancelled before account is deleted."]);
-    }
+      if ($user->roleID != 'unsubscribed')
+      {
+        return Response::json(['error' => "User's subscription must first be cancelled before account is deleted."]);
+      }
 
-    $user->delete();
+      $user->delete();
+    }
   }
 
   /*
@@ -296,26 +291,47 @@ class UsersController extends Controller
    */ 
   public function cancelSubs($id)
   {
-      $admin = Auth::user();
+    $admin = Auth::user();
 
-      if ($admin->roleID != 'Admin' )
-      {
-        return Response::json(['error' => 'invalid credentials']);
-      }
+    if ($admin->roleID != 'Admin' )
+    {
+      return Response::json(['error' => 'invalid credentials']);
+    }
 
-      $user = User::where('id',$id)->first();
-      $getUserID =  User::where('id',$id)->select('id')->first();
-      $userID = $getUserID['id'];
+    $user = User::where('id',$id)->first();
 
-      $subscription = Subscription::where('user_id', $userID)->first();
-      $getStripeID =  Subscription::where('user_id',$userID)->select('stripe_id')->first();
-      $stripeID =  $getStripeID['stripe_id'];
+    $subscription = Subscription::where('user_id', $user->id)->first();
+  
+    \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
+    $account = \Stripe\Subscription::retrieve($subscription->stripe_id);
+    $account->cancel(); 
     
-      $key = config('services.stripe.secret');
-      \Stripe\Stripe::setApiKey($key);
-      $sub = \Stripe\Subscription::retrieve($stripeID);
+    $user->roleID = 'unsubscribed';
+    $user->save();
+    
+    $subscription->name = 'unsubscribed';
+    $subscription->stripe_plan = 'none';
+    $subscription->ends_at = Carbon::now();
+    $subscription->save();
+  }
+
+  /*
+   *  USER: cancel user subscription immediately
+   */ 
+  public function userCancelNow()
+  {
+    if (Auth::user()->roleID != 'Admin')
+    {
+      $user = Auth::user();
+
+      $subscription = Subscription::where('user_id', $user->id)->first();
+      return Response::json($subscription->stripe_id);
+
+      \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
+
+      $sub = \Stripe\Subscription::retrieve($subscription->stripe_id);
       $sub->cancel(); 
-      
+
       $user->roleID = 'unsubscribed';
       $user->save();
       
@@ -323,5 +339,57 @@ class UsersController extends Controller
       $subscription->stripe_plan = 'none';
       $subscription->ends_at = Carbon::now();
       $subscription->save();
+    }
   }
+
+  /*
+   *  USER: update billing, delivery, or both addresses
+   */ 
+  public function userUpdateAddress(Request $request)
+  {
+
+    $validator = Validator::make(Purifier::clean($request->all()), [
+      'updateBilling' => 'required',
+      'updateDelivery' => 'required'
+    ]);
+
+    if (Auth::user()->roleID != 'Admin')
+    {
+      $user = Auth::user();
+      if ($request->updateBilling == true)
+      {
+        $user->billingAddress = $request->input('billingAddress');
+        $user->billingCountry = $request->input('billingCountry');
+        $user->billingCity = $request->input('billingCity');
+        $user->billingZipCode = $request->input('billingZipCode');
+      }
+
+      if ($request->updateDelivery == true)
+      {
+        $user->deliverAddress = $request->input('deliverAddress');
+        $user->deliverCountry = $request->input('deliverCountry');
+        $user->deliverCity = $request->input('deliverCity');
+        $user->deliverZipCode = $request->input('deliverZipCode');
+      }
+      $user->save();
+      return Response::json(['success'=> 'Address updated!']);      
+    }
+  }
+
+/*http://production.shippingapis.com/ShippingApi.dll?API=RateV4&XML=<RateV4Request USERID="085WEBDE4950">
+<Package ID="1ST"> 
+<Service>PRIORITY</Service> 
+<ZipOrigination>44106</ZipOrigination> 
+<ZipDestination>20770</ZipDestination> 
+<Pounds>1</Pounds> 
+<Ounces>8</Ounces> 
+<Container>NONRECTANGULAR</Container> 
+<Size>LARGE</Size> 
+<Width>15</Width> 
+<Length>30</Length> 
+<Height>15</Height> 
+<Girth>55</Girth> 
+</Package> 
+
+</RateV4Request>*/ 
 }
