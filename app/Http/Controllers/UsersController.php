@@ -1,5 +1,6 @@
 <?php
 namespace App\Http\Controllers;
+use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
 use App\User;
 use App\Subscription;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Validator;
 use JWTAuth;
 use Auth;
 use Carbon\Carbon;
+use Dompdf\Dompdf;
 
 class UsersController extends Controller
 {
@@ -182,32 +184,94 @@ class UsersController extends Controller
   public function isUserSubscribed($id)
   {
     $user = User::where('id', $id)->first();
-    if ($user->subscribedToPlan('monthly', 'main')) 
+    $subscription = Subscription::where('user_id',$id)->first();
+    $plan = $subscription['stripe_plan'];
+    $name = $subscription['name'];
+
+    if ($user->roleID == 'Admin' || $user->roleID == 'unsubscribed')
     {
-      return Response::json(true);
+      return Response::json($user['name'].' is not subscribed to any plan');
     }
-    return Response::json(false);
+
+    if ($user->subscribedToPlan($plan, $name)) 
+    {
+      return Response::json($user['name'].' is subscribed to the '.$user['roleID'].' plan');
+    }
+
+ }
+
+  public function tryMe($id)
+  {
+    $user = User::where('id',$id)->first();
+    $getUserID =  User::where('id',$id)->select('id')->first();
+    $userID = $getUserID['id'];
+
+    $subscription = Subscription::where('user_id', $userID)->first();
+    $getStripeID =  Subscription::where('user_id',$userID)->select('stripe_id')->first();
+    $stripeID =  $getStripeID['stripe_id'];
+
+    $customerID = $user['stripe_id'];
+    $key = config('services.stripe.secret');
+    \Stripe\Stripe::setApiKey($key);
+
+    $customer = \Stripe\Customer::retrieve($customerID);
+    $invoice = \Stripe\Invoice::retrieve("in_1AQ00iDRWneWp7Hphlzk37s6");
+
+    $invoices = $user->invoices();
+    $response = \Stripe\Invoice::all(array('customer' => $customerID));
+    $sub = \Stripe\Subscription::retrieve($stripeID);
+
+    $newResponse = array();
+    $newResponse['amount due'] = $response['data'][0]['amount_due'];
+    $newResponse['date'] = date("F j, Y, g:i a",$response['data'][0]['date']);
+
+    $dompdf = new Dompdf();
+    $dompdf->loadHtml('Date: '.$newResponse['date']."<br/>".'Amount due is: '.$newResponse['amount due']);
+
+    // (Optional) Setup the paper size and orientation
+    $dompdf->setPaper('A4', 'landscape');
+
+    // Render the HTML as PDF
+    $dompdf->render();
+
+    // Output the generated PDF to Browser
+    $dompdf->stream();
   }
 
-  public function try()
-  {
-    $subs = Subscription::all();
-    return Response::json($subs);
-  }  
 
+  public function tryIt()
+  {
+    $dompdf = new Dompdf();
+    $dompdf->loadHtml('hello world');
+
+    // (Optional) Setup the paper size and orientation
+    $dompdf->setPaper('A4', 'landscape');
+
+    // Render the HTML as PDF
+    $dompdf->render();
+
+    // Output the generated PDF to Browser
+    $dompdf->stream();
+  }
   /*
    *  ADMIN: delete user
    */ 
-  public function deleteUser($id)
+  public function deleteUser($id) 
   {
-      $admin = Auth::user();
+    $admin = Auth::user();
 
-      if ($admin->roleID != 'Admin' )
-      {
-        return Response::json(['error' => 'invalid credentials']);
-      }
-      $user = User::where('id',$id)->first();
-      $user->delete();
+    if ($admin->roleID != 'Admin' )
+    {
+      return Response::json(['error' => 'invalid credentials']);
+    }
+    $user = User::where('id',$id)->first();
+
+    if ($user->roleID != 'unsubscribed')
+    {
+      return Response::json(['error' => "User's subscription must first be cancelled before account is deleted."]);
+    }
+
+    $user->delete();
   }
 
   /*
@@ -238,6 +302,7 @@ class UsersController extends Controller
       {
         return Response::json(['error' => 'invalid credentials']);
       }
+
       $user = User::where('id',$id)->first();
       $getUserID =  User::where('id',$id)->select('id')->first();
       $userID = $getUserID['id'];

@@ -23,7 +23,16 @@ Route::post('signUp', 'UsersController@signUp');
 Route::post('signIn', 'UsersController@signIn');
 Route::get( 'index', 'UsersController@index'); 
 Route::get('isSub/{id}', 'UsersController@isUserSubscribed');
-Route::get('try', 'UsersController@try');
+Route::get('try/{id}', 'UsersController@tryMe');
+Route::get('tryIt', 'UsersController@tryIt');
+
+// Invoice
+Route::get('user/invoice/{invoice}', function (Request $request, $invoiceId) {
+    return $request->user()->downloadInvoice($invoiceId, [
+        'vendor'  => 'Your Company',
+        'product' => 'Your Product',
+    ]);
+});
 
 //Redirect invalid requests
 Route::any('{path?}', 'MainController@index')->where("path", ".+");
