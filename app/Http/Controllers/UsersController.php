@@ -1,7 +1,7 @@
 <?php
 namespace App\Http\Controllers;
-use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use App\User;
 use App\Subscription;
 use App\Role;
@@ -29,7 +29,6 @@ class UsersController extends Controller
       'isUserSubscribed',
       'newAdmin',
       'invoicePDF',
-      'tryMe',
       'userCancelNow'
     ]]);
   }
@@ -39,17 +38,17 @@ class UsersController extends Controller
    */ 
   public function indexUsers()
   {
-      $admin = Auth::user();
+    $admin = Auth::user();
 
-      if ($admin->roleID != 'Admin' )
-      {
-        return Response::json(['error' => 'invalid credentials']);
-      }
-        
-      $users = User::join('subscriptions','users.id','subscriptions.user_id')
-        ->select('users.*', 'subscriptions.*')->get();
+    if ($admin->roleID != 'Admin' )
+    {
+      return Response::json(['error' => 'invalid credentials']);
+    }
+      
+    $users = User::join('subscriptions','users.id','subscriptions.user_id')
+      ->select('users.*', 'subscriptions.*')->get();
 
-      return Response::json($users);
+    return Response::json($users);
   }
 
   /*
@@ -57,19 +56,19 @@ class UsersController extends Controller
    */ 
   public function indexAdmin()
   {
-      $admin = Auth::user();
+    $admin = Auth::user();
 
-      if ($admin->roleID != 'Admin' )
-      {
-        return Response::json(['error' => 'invalid credentials']);
-      }
+    if ($admin->roleID != 'Admin' )
+    {
+      return Response::json(['error' => 'invalid credentials']);
+    }
 
-      $allAdmins = User::where('roleID', '==', 'Admin')->select(
-        'name',
-        'email'
-      )->get();
-    
-    return Response::json($allAdmins);
+    $allAdmins = User::where('roleID', '==', 'Admin')->select(
+      'name',
+      'email'
+    )->get();
+  
+  return Response::json($allAdmins);
   }
 
   public function signUp(Request $request)
@@ -126,6 +125,7 @@ class UsersController extends Controller
     */
     $check = $request['plan'];
     $cardToken = 'tok_1APzw3DRWneWp7Hp7qmRYm8T';
+
     switch($check) 
     {
       // Tier 1: $29.99
@@ -149,8 +149,12 @@ class UsersController extends Controller
         $user->newSubscription('tierThree', 'tierThree')->create($cardToken);
         break;
     }
-      $user->save();
-    return Response::json(['success' => 'User created successfully']);
+    if($user->save());
+    {
+      return Response::json(['success' => 'User created successfully']);
+    }
+      Log::error('Error: Account not created');
+      return Response::json(['error' => 'Account not created']);
   }
 
   public function show()
@@ -202,14 +206,11 @@ class UsersController extends Controller
 
  }
 
-  public function tryMe()
+  public function tryMe($id)
   {
-    if (Auth::check() && Auth::user()->roleID != 'Admin')
-    {
-      $user = Auth::user();
-      return Response::json($user->stripe_id);
-    }
-    return Response::json(false);
+    $user = User::where('id',$id)->first(); 
+    Log::notice($user->email.' cancelled their account');
+    return Response::json('response');
   }
 
 
@@ -219,6 +220,11 @@ class UsersController extends Controller
     \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
     $response = \Stripe\Invoice::all(array('customer' => $user->stripe_id));
     return Response::json($response);
+  }
+
+  public function tryNow()
+  {
+
   }
 
   /*
@@ -276,14 +282,19 @@ class UsersController extends Controller
   {
       $admin = Auth::user();
 
-      if ($admin->roleID != 'Admin' )
+      if ($admin->roleID == 'Admin' )
       {
-        return Response::json(['error' => 'invalid credentials']);
-      }
-      $user = User::where('id',$id)->first();
+        $user = User::where('id',$id)->first();
 
-      $newRole = Role::where('id',1)->select('name')->first();
-      $user->roleID = $newRole['name'];
+        $newRole = Role::where('id',1)->select('name')->first();
+        $user->roleID = $newRole['name'];
+
+        if ($user->save())
+        {
+          return Response::json(['success' => 'Admin privalages given to '.$user->email]);          
+        }
+        return Response::json(['error' => 'Please try again '.$user->email.' not given Admin Privalages.']);          
+      }
   }
 
   /*
@@ -307,12 +318,18 @@ class UsersController extends Controller
     $account->cancel(); 
     
     $user->roleID = 'unsubscribed';
-    $user->save();
-    
-    $subscription->name = 'unsubscribed';
-    $subscription->stripe_plan = 'none';
-    $subscription->ends_at = Carbon::now();
-    $subscription->save();
+    if ($user->save())
+    {
+      $subscription->name = 'unsubscribed';
+      $subscription->stripe_plan = 'none';
+      $subscription->ends_at = Carbon::now();
+
+      if ($subscription->save())
+      {
+        Log::notice($user->email.' account deleted by '.$admin->email);
+        return Response::json(['success' => 'Account cancelled and database updated' ]);
+      }
+    }
   }
 
   /*
@@ -325,7 +342,6 @@ class UsersController extends Controller
       $user = Auth::user();
 
       $subscription = Subscription::where('user_id', $user->id)->first();
-      return Response::json($subscription->stripe_id);
 
       \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
 
@@ -333,12 +349,21 @@ class UsersController extends Controller
       $sub->cancel(); 
 
       $user->roleID = 'unsubscribed';
-      $user->save();
-      
-      $subscription->name = 'unsubscribed';
-      $subscription->stripe_plan = 'none';
-      $subscription->ends_at = Carbon::now();
-      $subscription->save();
+
+      if ($user->save())
+      {
+        $subscription->name = 'unsubscribed';
+        $subscription->stripe_plan = 'none';
+        $subscription->ends_at = Carbon::now();
+
+        if ($subscription->save())
+        {
+          Log::notice($user->email.'cancelled their account');
+          return Response::json(['success' => 'subscription cancelled']);
+        }
+      }
+      return Response::json(['success' => 'subscription cancelled']);
+      Log::critical($user->email.' cancelled their account but database was not updated');
     }
   }
 

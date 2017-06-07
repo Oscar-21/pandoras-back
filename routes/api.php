@@ -29,6 +29,10 @@ Route::get('cancel', 'UsersController@userCancelNow');
 //test routes
 Route::get('try', 'UsersController@tryMe');
 Route::get('tryIt/{id}', 'UsersController@tryIt');
+Route::get('tryMe/{id}', 'UsersController@tryMe');
+
+// Contact Routes
+Route::get('message', 'ContactsController@message');
 
 // Invoice
 Route::get('user/invoice/{invoice}', function (Request $request, $invoiceId) {
