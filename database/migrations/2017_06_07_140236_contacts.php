@@ -21,8 +21,11 @@ class Contacts extends Migration
         $table->longtext('message');
         $table->boolean('read')->default(false);
         $table->boolean('resolved')->default(false);
+        $table->string('resolved_by')->nullable();
+        $table->string('resolved_at')->nullable();
         $table->boolean('replied')->default(false);
-        $table->boolean('warrent_reply')->default(false);
+        $table->string('replied_by')->nullable();
+        $table->string('replied_at')->nullable();
         $table->timestamps();
       });
     }

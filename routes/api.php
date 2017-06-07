@@ -33,6 +33,7 @@ Route::get('tryMe/{id}', 'UsersController@tryMe');
 
 // Contact Routes
 Route::get('message', 'ContactsController@message');
+Route::post('updateMessage', 'ContactsController@updateMessage');
 
 // Invoice
 Route::get('user/invoice/{invoice}', function (Request $request, $invoiceId) {
