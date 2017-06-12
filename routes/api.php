@@ -18,30 +18,26 @@ Route::post('updateRole/{id}', 'RolesController@update');
 Route::get('showRole/{id}', 'RolesController@show');
 Route::post('deleteRole/{id}', 'RolesController@destroy');
 
-// User Routes
-Route::post('signUp', 'UsersController@signUp');
-Route::post('signIn', 'UsersController@signIn');
-Route::get( 'index', 'UsersController@index'); 
-Route::get('isSub/{id}', 'UsersController@isUserSubscribed');
-Route::get('inv', 'UsersController@invoicePDF');
-Route::get('cancel', 'UsersController@userCancelNow');
+//*** User Routes *****//
+Route::post('signUp', 'UsersController@signUp'); // USER/ADMIN: Sign up/ Subscribe
+Route::post('signIn', 'UsersController@signIn'); // USER: Login
+Route::get( 'showUsers', 'UsersController@indexUsers');  // ADMIN: Index users
+Route::get('isSub/{id}', 'UsersController@isUserSubscribed'); // ADMIN: check if user is subscribed
+Route::get('inv', 'UsersController@invoicePDF'); // USER: Generate PDF
+Route::get('cancel', 'UsersController@userCancelNow'); // User: cancel subscription immediately 
+Route::get('getPostageKey', function() {
+  return Response::json(config('services.postal.username'));
+});
+Route::post('xml', 'UsersController@xml');
 
-//test routes
+// Test routes
 Route::get('try', 'UsersController@tryMe');
-Route::get('tryIt/{id}', 'UsersController@tryIt');
-Route::get('tryMe/{id}', 'UsersController@tryMe');
+Route::get('tryIt', 'UsersController@tryIt');
+
 
 // Contact Routes
 Route::get('message', 'ContactsController@message');
 Route::post('updateMessage', 'ContactsController@updateMessage');
-
-// Invoice
-Route::get('user/invoice/{invoice}', function (Request $request, $invoiceId) {
-    return $request->user()->downloadInvoice($invoiceId, [
-        'vendor'  => 'Your Company',
-        'product' => 'Your Product',
-    ]);
-});
 
 //Redirect invalid requests
 Route::any('{path?}', 'MainController@index')->where("path", ".+");

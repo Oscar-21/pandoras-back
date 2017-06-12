@@ -13,6 +13,7 @@ use JWTAuth;
 use Auth;
 use Carbon\Carbon;
 use Dompdf\Dompdf;
+use XmlParser;
 
 class UsersController extends Controller
 {
@@ -21,7 +22,7 @@ class UsersController extends Controller
     $this->middleware('jwt.auth', ['only'=>[
       'deleteUser',
       'show',
-      'indexUser',
+      'indexUsers',
       'indexAdmin',
       'updateAddress', 
       'adminShowUser',
@@ -32,7 +33,8 @@ class UsersController extends Controller
       'userCancelNow'
     ]]);
   }
-  
+
+
   /*
    *  ADMIN: Show all user information
    */ 
@@ -40,13 +42,13 @@ class UsersController extends Controller
   {
     $admin = Auth::user();
 
-    if ($admin->roleID != 'Admin' )
+    if ($admin->roleID != 'Admin')
     {
       return Response::json(['error' => 'invalid credentials']);
     }
       
     $users = User::join('subscriptions','users.id','subscriptions.user_id')
-      ->select('users.*', 'subscriptions.*')->get();
+      ->select('users.*', 'subscriptions.*')->where('roleID','!=','Admin')->get();
 
     return Response::json($users);
   }
@@ -56,8 +58,7 @@ class UsersController extends Controller
    */ 
   public function indexAdmin()
   {
-    $admin = Auth::user();
-
+    return Response::json(['hell' => 'naa']);
     if ($admin->roleID != 'Admin' )
     {
       return Response::json(['error' => 'invalid credentials']);
@@ -84,6 +85,7 @@ class UsersController extends Controller
       'billingCountry' => 'required',
       'useBillingAddress' => 'required',
       'plan' => 'required',
+      'customerToken' => 'required'
     ]);
 
     if ($validator->fails())
@@ -109,14 +111,16 @@ class UsersController extends Controller
     $user->billingCountry= $request->input('billingCountry');
 
     // check to see if billiing address is mailing address
-    $check = $request['useBillingAddress'];
+    $check = (bool)$request['useBillingAddress'];
+    return Response::json($check);
 
-    if ($check == false) 
+    if ($check == false); 
     {
-      $user->address = $request->input('deliverAddress');
-      $user->zipCode = $request->input('deliverZipCode');
-      $user->city= $request->input('deliverCity');
-      $user->country= $request->input('deliverCountry');
+      return Response::json($check);
+      $user->deliverAddress = $request->input('deliverAddress');
+      $user->deliverCity= $request->input('deliverCity');
+      $user->deliverZipCode = $request->input('deliverZipCode');
+      $user->deliverCountry= $request->input('deliverCountry');
     }
     /*
     * laravel/cashier methods to populate a users table 
@@ -124,11 +128,11 @@ class UsersController extends Controller
     * table
     */
     $check = $request['plan'];
-    $cardToken = 'tok_1APzw3DRWneWp7Hp7qmRYm8T';
+    $cardToken = $request['customerToken'];
 
     switch($check) 
     {
-      // Tier 1: $29.99
+     // Tier 1: $29.99
       case 'tierOne':
         $role = Role::where('id',2)->select('name')->first();
         $user->roleID = $role['name'];
@@ -148,7 +152,7 @@ class UsersController extends Controller
         $user->roleID = $role['name'];
         $user->newSubscription('tierThree', 'tierThree')->create($cardToken);
         break;
-    }
+  }
     if($user->save());
     {
       return Response::json(['success' => 'User created successfully']);
@@ -161,7 +165,6 @@ class UsersController extends Controller
   {
 
   }
-  
   /*
    *  USER: Sign in
    */ 
@@ -183,7 +186,6 @@ class UsersController extends Controller
       return Response::json(compact("token"));
   }
 
-  
   /*
    *  ADMIN: Check Subscritption Status
    */ 
@@ -206,20 +208,31 @@ class UsersController extends Controller
 
  }
 
-  public function tryMe($id)
+  public function tryMe(Request $request)
   {
-    $user = User::where('id',$id)->first(); 
-    Log::notice($user->email.' cancelled their account');
-    return Response::json('response');
+    if ( empty($request) ) {
+      return Response::json([ 'error' => 'empty']);
+    }
+    return Response::json([ 'success' => 'not empty']);
   }
 
-
-  public function tryIt($id)
+  public function xml(Request $request)
   {
-    $user = User::where('id',$id)->first();
-    \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
-    $response = \Stripe\Invoice::all(array('customer' => $user->stripe_id));
-    return Response::json($response);
+    $xml = $request->input('xml');
+    $xml = XmlParser::extract($request->input('xml'));
+
+    $postage = $xml->parse([
+      'size' => ['uses' => 'Package.Size'],
+      'pounds' => ['uses' => 'Package.Pounds'],
+      'rate' => ['uses' => 'Package.Postage.Rate'],
+    ]); 
+    return Response::json($postage['rate']);
+  }
+
+  public function getPostageKey()
+  {
+    $postal = config('services.postal.username');
+    return Response::json($postal);
   }
 
   public function tryNow()

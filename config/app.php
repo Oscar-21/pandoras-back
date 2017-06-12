@@ -187,6 +187,11 @@ return [
          * Payment/Subsription Service Providers...
          */
          Laravel\Cashier\CashierServiceProvider::class, 
+
+        /*
+         * XML Parser Service Providers...
+         */
+         Orchestra\Parser\XmlServiceProvider::class,
     ],
 
     /*
@@ -240,7 +245,7 @@ return [
         'Image' => Intervention\Image\Facades\Image::class,
         'Purifier' => Mews\Purifier\Facades\Purifier::class,
         'Debugbar' => Barryvdh\Debugbar\Facade::class,
-
+        'XmlParser' => Orchestra\Parser\Xml\Facade::class,
     ],
 
 ];
