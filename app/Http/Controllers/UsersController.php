@@ -36,7 +36,7 @@ class UsersController extends Controller
 
 
   /*
-   *  ADMIN: Show all user information
+   *  ADMIN: Show all subscribed users
    */ 
   public function indexUsers()
   {
@@ -48,7 +48,20 @@ class UsersController extends Controller
     }
       
     $users = User::join('subscriptions','users.id','subscriptions.user_id')
-      ->select('users.*', 'subscriptions.*')->where('roleID','!=','Admin')->get();
+      ->select(
+        'users.name',
+        'users.email',
+        'users.roleID',
+        'users.billingCountry',
+        'users.billingCity',
+        'subscriptions.id',
+        'subscriptions.name as tier',
+        'subscriptions.stripe_plan',
+        'subscriptions.quantity',
+        'subscriptions.ends_at',
+        'subscriptions.created_at',
+        'subscriptions.updated_at'
+      )->where('roleID','!=','Admin')->get();
 
     return Response::json($users);
   }
@@ -208,14 +221,18 @@ class UsersController extends Controller
 
  }
 
-  public function tryMe(Request $request)
+  public function tryMe($id)
   {
-    if ( empty($request) ) {
-      return Response::json([ 'error' => 'empty']);
-    }
-    return Response::json([ 'success' => 'not empty']);
-  }
+    $user = User::where('id',$id)->first();
+    $subscription = Subscription::where('user_id',$id)->first();
+    $plan = $subscription['stripe_plan'];
+    $name = $subscription['name'];
 
+    if ($user->subscribedToPlan($plan, $name)) 
+    {
+      return Response::json($user['name'].' is subscribed to the '.$user['roleID'].' plan');
+    }
+  }
   public function xml(Request $request)
   {
     $xml = $request->input('xml');

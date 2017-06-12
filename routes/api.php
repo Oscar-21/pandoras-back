@@ -30,9 +30,22 @@ Route::get('getPostageKey', function() {
 });
 Route::post('xml', 'UsersController@xml');
 
+
+Route::get('wtf', function() {
+  return Response::json('wtf');
+});
+
 // Test routes
 Route::get('try', 'UsersController@tryMe');
-Route::get('tryIt', 'UsersController@tryIt');
+Route::get('tryMe/{id}', 'UsersController@tryMe');
+Route::get('testDebug', function() {
+  $j = 0;
+  for ($i = 0; $i < 10; $i++)
+  {
+    $j++;
+  }
+  return Response::json($j);
+});
 
 
 // Contact Routes
