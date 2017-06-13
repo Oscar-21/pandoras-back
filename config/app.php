@@ -192,6 +192,13 @@ return [
          * XML Parser Service Providers...
          */
          Orchestra\Parser\XmlServiceProvider::class,
+
+
+        /*
+         * PDF Generator Service Providers...
+         */
+         Barryvdh\DomPDF\ServiceProvider::class,
+
     ],
 
     /*
@@ -246,6 +253,7 @@ return [
         'Purifier' => Mews\Purifier\Facades\Purifier::class,
         'Debugbar' => Barryvdh\Debugbar\Facade::class,
         'XmlParser' => Orchestra\Parser\Xml\Facade::class,
+        'PDF' => Barryvdh\DomPDF\Facade::class,
     ],
 
 ];

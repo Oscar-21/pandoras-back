@@ -13,29 +13,29 @@ class CreateUsersTable extends Migration
      */
     public function up()
     {
-        Schema::create('users', function (Blueprint $table) {
-            $table->increments('id');
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->string('password');
-            $table->string('roleID');
-            $table->string('billingAddress');
-            $table->string('billingCountry');
-            $table->string('billingCity');
-            $table->string('billingZipCode');
-            $table->string('deliverAddress')->nullable();
-            $table->string('deliverZipCode')->nullable();
-            $table->string('deliverCountry')->nullable();
-            $table->string('deliverCity')->nullable();
-            
-            $table->string('stripe_id')->nullable();
-            $table->string('card_brand')->nullable();
-            $table->string('card_last_four')->nullable();
-            $table->timestamp('trial_ends_at')->nullable();
+      Schema::create('users', function (Blueprint $table) {
+        $table->increments('id');
+        $table->string('name');
+        $table->string('email')->unique();
+        $table->string('password');
+        $table->string('roleID');
+        $table->string('billingAddress');
+        $table->string('billingCountry');
+        $table->string('billingCity');
+        $table->string('billingZipCode');
+        $table->string('deliverAddress')->nullable();
+        $table->string('deliverZipCode')->nullable();
+        $table->string('deliverCountry')->nullable();
+        $table->string('deliverCity')->nullable();
+        
+        $table->string('stripe_id')->nullable();
+        $table->string('card_brand')->nullable();
+        $table->string('card_last_four')->nullable();
+        $table->timestamp('trial_ends_at')->nullable();
 
-            $table->rememberToken();
-            $table->timestamps();
-        });
+        $table->rememberToken();
+        $table->timestamps();
+      });
     }
 
     /**

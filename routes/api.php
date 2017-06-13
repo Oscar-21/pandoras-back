@@ -19,17 +19,26 @@ Route::get('showRole/{id}', 'RolesController@show');
 Route::post('deleteRole/{id}', 'RolesController@destroy');
 
 //*** User Routes *****//
+Route::get('index', 'UsersController@index'); // USER Show info
 Route::post('signUp', 'UsersController@signUp'); // USER/ADMIN: Sign up/ Subscribe
 Route::post('signIn', 'UsersController@signIn'); // USER: Login
 Route::get( 'showUsers', 'UsersController@indexUsers');  // ADMIN: Index users
 Route::get('isSub/{id}', 'UsersController@isUserSubscribed'); // ADMIN: check if user is subscribed
 Route::get('inv', 'UsersController@invoicePDF'); // USER: Generate PDF
+
+Route::get('out', function() {
+    return Response::json(Auth::check());
+}); // USER: Generate PDF
+
 Route::get('cancel', 'UsersController@userCancelNow'); // User: cancel subscription immediately 
 Route::get('getPostageKey', function() {
   return Response::json(config('services.postal.username'));
 });
 Route::post('xml', 'UsersController@xml');
 
+Route::get( 'check', 'UsersController@checkLog');  // ADMIN: Index users
+
+Route::get( 'lout', 'UsersController@LogOut');  // ADMIN: Index users
 
 Route::get('wtf', function() {
   return Response::json('wtf');

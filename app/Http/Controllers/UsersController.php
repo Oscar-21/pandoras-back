@@ -29,8 +29,11 @@ class UsersController extends Controller
       'userShow',
       'isUserSubscribed',
       'newAdmin',
+      'index',
+      'userCancelNow',
+      'checkLog',
+      'LogOut',
       'invoicePDF',
-      'userCancelNow'
     ]]);
   }
 
@@ -64,6 +67,37 @@ class UsersController extends Controller
       )->where('roleID','!=','Admin')->get();
 
     return Response::json($users);
+  }
+  public function index()
+  {
+    $user = Auth::user();
+    $email = $user->email;
+
+    if ($user->roleID != 'Admin')
+    {
+        
+      $userInfo = User::join('subscriptions','users.id','subscriptions.user_id')
+        ->select(
+          'users.name',
+          'users.email',
+          'users.roleID',
+          'users.billingCountry',
+          'users.billingCity',
+          'subscriptions.id',
+          'subscriptions.name as tier',
+          'subscriptions.stripe_plan',
+          'subscriptions.quantity',
+          'subscriptions.ends_at',
+          'subscriptions.created_at',
+          'subscriptions.updated_at'
+        )->where('email',$email)->first();
+
+      return Response::json($userInfo);
+    }
+    else
+    {
+      return Response::json(['error' => 'invalid credentials']);
+    }
   }
 
   /*
@@ -178,6 +212,7 @@ class UsersController extends Controller
   {
 
   }
+
   /*
    *  USER: Sign in
    */ 
@@ -192,11 +227,27 @@ class UsersController extends Controller
     {
       return Response::json(["error" => "You must enter an email and a password."]);
     }
+      $user = User::where('email',$request->input('email'))->first();
       $email = $request->input('email');
       $password = $request->input('password');
-      $cred = compact("email","password",["email","password"]);
+      $cred = compact('email','password',['email','password']);
       $token = JWTAuth::attempt($cred);
-      return Response::json(compact("token"));
+
+      $checkPrivalage = array('token','role','id');
+
+      if($user->roleID == 'Admin')
+      {
+        $role = 'Admin';
+        $id = $user->id;
+        return Response::json(compact('token','role','id',$checkPrivalage));
+      }
+      else if($user->roleID != 'Admin')
+      {
+        $role = 'user';
+        $id = $user->id;
+        return Response::json(compact('token','role',$checkPrivalage));
+        return Response::json(compact('token','role','id',$checkPrivalage));
+      }
   }
 
   /*
@@ -258,35 +309,46 @@ class UsersController extends Controller
   }
 
   /*
-   *  USER: generate pdf file of invoice
+   *  User: generate pdf file of invoice
    */ 
   public function invoicePDF()
   {
-    if (Auth::user()->roleID != 'Admin')
-    {
       $user = Auth::user();
       $customerID = $user->stripe_id;
 
       \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
-      $response = \Stripe\Invoice::all(array('customer' => $customerID));
+      $stripeResponse = \Stripe\Invoice::all(array('customer' => $customerID));
 
-      $dompdf = new Dompdf();
-      $dompdf->loadHtml(
-        '<h1>'.'Pyxis Invoice'.'</h1>'.
-        'Customer: '.$user->name.'<br/>'.
-        'Date: '.date("F j, Y, g:i a",$response['data'][0]['date']).'<br/>'.
-        'Amount due: $'.substr_replace($response['data'][0]['amount_due'],'.',2,0).'<br/>'. 
-        'Current Balance: $'.$response['data'][0]['ending_balance'].'.00' 
-      );
-      // (Optional) Setup the paper size and orientation
-      $dompdf->setPaper('A4', 'landscape');
-      // Render the HTML as PDF
-      $dompdf->render();
-      // Output the generated PDF to Browser
-      $dompdf->stream();
-    }
+      /*if ($request->input('pdfOrHtml') == 1)
+      {*/
+        $dompdf = new Dompdf();
+        $dompdf->loadHtml(
+          '<h1>'.'Pyxis Invoice'.'</h1>'.
+          'Customer: '.$user->name.'<br/>'.
+          'Date: '.date("F j, Y, g:i a",$stripeResponse['data'][0]['date']).'<br/>'.
+          'Amount due: $'.substr_replace($stripeResponse['data'][0]['amount_due'],'.',2,0).'<br/>'. 
+          'Current Balance: $'.$stripeResponse['data'][0]['ending_balance'].'.00' 
+        );
+        // (Optional) Setup the paper size and orientation
+        $dompdf->setPaper('A4', 'landscape');
+                // Render the HTML as PDF
+        $dompdf->render();
+        // Output the generated PDF to Browser
+        $dompdf->stream();
+      //} 
+      /*else if ($request->input('pdfOrHtml') == 0)
+      {
+        $invoice = [
+          $user->name,
+          date("F j, Y, g:i a",$stripeResponse['data'][0]['date']),
+          substr_replace($stripeResponse['data'][0]['amount_due'],'.',2,0),
+          $stripeResponse['data'][0]['ending_balance']
+        ];
+        return Response::json($invoice);
+      }
+      return Response::json(['error' => 'invalid credentials']);
+      */
   }
-
   /*
    *  ADMIN: delete user
    */ 
@@ -361,7 +423,6 @@ class UsersController extends Controller
       }
     }
   }
-
   /*
    *  USER: cancel user subscription immediately
    */ 
@@ -431,20 +492,21 @@ class UsersController extends Controller
     }
   }
 
-/*http://production.shippingapis.com/ShippingApi.dll?API=RateV4&XML=<RateV4Request USERID="085WEBDE4950">
-<Package ID="1ST"> 
-<Service>PRIORITY</Service> 
-<ZipOrigination>44106</ZipOrigination> 
-<ZipDestination>20770</ZipDestination> 
-<Pounds>1</Pounds> 
-<Ounces>8</Ounces> 
-<Container>NONRECTANGULAR</Container> 
-<Size>LARGE</Size> 
-<Width>15</Width> 
-<Length>30</Length> 
-<Height>15</Height> 
-<Girth>55</Girth> 
-</Package> 
+  public function checkLog()
+  {
+    return Response::json(Auth::check());
+  }
 
-</RateV4Request>*/ 
+  public function LogOut()
+  {
+    if (Auth::check() == true)
+    {
+      Auth::logout();
+      return Response::json(['success' => 'Logged out']);
+    }
+    else
+    {
+      return Response::json(['error' => 'Not logged in']);
+    }
+  }
 }
